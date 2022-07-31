@@ -6,6 +6,8 @@ import localize from './localize';
 import styles from './styles.css';
 import defaultImage from './vacuum.svg';
 import { version } from '../package.json';
+import { String } from 'typescript-string-operations';
+
 import './vacuum-card-editor';
 
 registerTemplates();
@@ -102,6 +104,30 @@ class VacuumCard extends LitElement {
     return this.config.compact_view;
   }
 
+  get waterLevelEntity() {
+    if (!this.hass || !this.config.water_level) {
+      return null;
+    }
+
+    const entity_type = 'select';
+    const waterLevel = this.config.water_level;
+    if (!waterLevel.startsWith(entity_type)) {
+      throw new Error(
+        String.Format(
+          localize('error.domain_not_supported'),
+          entity_type,
+          waterLevel.split('.')[0]
+        )
+      );
+    }
+
+    return waterLevel;
+  }
+
+  get waterLevel() {
+    return this.hass.states[this.waterLevelEntity];
+  }
+
   setConfig(config) {
     if (!config.entity) {
       throw new Error(localize('error.missing_entity'));
@@ -119,8 +145,20 @@ class VacuumCard extends LitElement {
     return this.config.compact_view || false ? 3 : 8;
   }
 
+  hasWaterLevelChanged(changedProps) {
+    return (
+      this.hass &&
+      this.config.water_level &&
+      changedProps.get('hass').states[this.waterLevelEntity].state !==
+        this.waterLevel.state
+    );
+  }
+
   shouldUpdate(changedProps) {
-    return hasConfigOrEntityChanged(this, changedProps);
+    return (
+      hasConfigOrEntityChanged(this, changedProps) ||
+      this.hasWaterLevelChanged(changedProps)
+    );
   }
 
   updated(changedProps) {
@@ -165,9 +203,17 @@ class VacuumCard extends LitElement {
     );
   }
 
-  handleSpeed(e) {
+  handleSpeed(e, context) {
     const fan_speed = e.target.getAttribute('value');
-    this.callService('set_fan_speed', { isRequest: false }, { fan_speed });
+    context.callService('set_fan_speed', { isRequest: false }, { fan_speed });
+  }
+
+  handleSelect(e, context) {
+    const value = e.target.getAttribute('value');
+    context.hass.callService('select', 'select_option', {
+      entity_id: context.waterLevel.entity_id,
+      option: value,
+    });
   }
 
   handleAction(action, params = { isRequest: true }) {
@@ -229,30 +275,64 @@ class VacuumCard extends LitElement {
       this.entity
     );
 
-    if (!sources) {
+    return this.renderDropDown(
+      source,
+      sources,
+      'mdi:fan',
+      this.handleSpeed,
+      'source'
+    );
+  }
+
+  renderWaterLevel() {
+    const entity = this.waterLevel;
+    if (entity) {
+      return this.renderDropDown(
+        entity.state,
+        entity.attributes.options,
+        'mdi:water',
+        this.handleSelect,
+        'source'
+      );
+    }
+  }
+
+  renderDropDown(
+    selectedObject,
+    objects,
+    icon,
+    onSelected,
+    localizePrefix = ''
+  ) {
+    if (!objects) {
       return nothing;
     }
 
-    const selected = sources.indexOf(source);
+    const selected = objects.indexOf(selectedObject);
+
+    if (localizePrefix !== '' && !localizePrefix.endsWith('.')) {
+      localizePrefix += '.';
+    }
 
     return html`
       <div class="tip">
         <ha-button-menu @click="${(e) => e.stopPropagation()}">
           <div slot="trigger">
-            <ha-icon icon="mdi:fan"></ha-icon>
+            <ha-icon icon="${icon}"></ha-icon>
             <span class="icon-title">
-              ${localize(`source.${source}`) || source}
+              ${localize(`${localizePrefix}${selectedObject}`) ||
+              selectedObject}
             </span>
           </div>
-          ${sources.map(
+          ${objects.map(
             (item, index) =>
               html`
                 <mwc-list-item
                   ?activated=${selected === index}
                   value=${item}
-                  @click=${(e) => this.handleSpeed(e)}
+                  @click="${(e) => onSelected(e, this)}"
                 >
-                  ${localize(`source.${item}`) || item}
+                  ${localize(`${localizePrefix}${item}`) || item}
                 </mwc-list-item>
               `
           )}
@@ -507,7 +587,8 @@ class VacuumCard extends LitElement {
         <div class="preview">
           <div class="header">
             <div class="tips">
-              ${this.renderSource()} ${this.renderBattery()}
+              ${this.renderSource()} ${this.renderWaterLevel()}
+              ${this.renderBattery()}
             </div>
             <ha-icon-button
               class="more-info"
