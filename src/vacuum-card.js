@@ -277,7 +277,7 @@ class VacuumCard extends LitElement {
       return nothing;
     }
 
-    if (this.map) {
+    if (this.map && state === 'cleaning') {
       const map = this.hass.states[this.config.map];
       return map && map.attributes.entity_picture
         ? html`
@@ -345,11 +345,7 @@ class VacuumCard extends LitElement {
       return nothing;
     }
 
-    return html`
-      <div class="vacuum-name">
-        ${friendly_name}
-      </div>
-    `;
+    return html` <div class="vacuum-name">${friendly_name}</div> `;
   }
 
   renderStatus() {
@@ -528,9 +524,7 @@ class VacuumCard extends LitElement {
             ${this.renderName()} ${this.renderStatus()}
           </div>
 
-          <div class="stats">
-            ${this.renderStats(state)}
-          </div>
+          <div class="stats">${this.renderStats(state)}</div>
         </div>
 
         ${this.renderToolbar(state)}
