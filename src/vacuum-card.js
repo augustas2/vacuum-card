@@ -6,8 +6,6 @@ import localize from './localize';
 import styles from './styles.css';
 import defaultImage from './vacuum.svg';
 import { version } from '../package.json';
-import { String } from 'typescript-string-operations';
-
 import './vacuum-card-editor';
 
 registerTemplates();
@@ -104,30 +102,6 @@ class VacuumCard extends LitElement {
     return this.config.compact_view;
   }
 
-  get waterLevelEntity() {
-    if (!this.hass || !this.config.water_level) {
-      return null;
-    }
-
-    const entity_type = 'select';
-    const waterLevel = this.config.water_level;
-    if (!waterLevel.startsWith(entity_type)) {
-      throw new Error(
-        String.Format(
-          localize('error.domain_not_supported'),
-          entity_type,
-          waterLevel.split('.')[0]
-        )
-      );
-    }
-
-    return waterLevel;
-  }
-
-  get waterLevel() {
-    return this.hass.states[this.waterLevelEntity];
-  }
-
   setConfig(config) {
     if (!config.entity) {
       throw new Error(localize('error.missing_entity'));
@@ -145,20 +119,8 @@ class VacuumCard extends LitElement {
     return this.config.compact_view || false ? 3 : 8;
   }
 
-  hasWaterLevelChanged(changedProps) {
-    return (
-      this.hass &&
-      this.config.water_level &&
-      changedProps.get('hass').states[this.waterLevelEntity].state !==
-        this.waterLevel.state
-    );
-  }
-
   shouldUpdate(changedProps) {
-    return (
-      hasConfigOrEntityChanged(this, changedProps) ||
-      this.hasWaterLevelChanged(changedProps)
-    );
+    return hasConfigOrEntityChanged(this, changedProps);
   }
 
   updated(changedProps) {
@@ -203,17 +165,23 @@ class VacuumCard extends LitElement {
     );
   }
 
-  handleSpeed(e, context) {
+  handleSpeed(e) {
     const fan_speed = e.target.getAttribute('value');
-    context.callService('set_fan_speed', { isRequest: false }, { fan_speed });
+    this.callService('set_fan_speed', { isRequest: false }, { fan_speed });
   }
 
-  handleSelect(e, context) {
-    const value = e.target.getAttribute('value');
-    context.hass.callService('select', 'select_option', {
-      entity_id: context.waterLevel.entity_id,
-      option: value,
-    });
+  handleWaterLevel(e) {
+    const water_level = e.target.getAttribute('value');
+    this.callService(
+      'send_command',
+      { isRequest: false },
+      {
+        command: 'set_water_level',
+        params: {
+          water_level,
+        },
+      }
+    );
   }
 
   handleAction(action, params = { isRequest: true }) {
@@ -255,6 +223,8 @@ class VacuumCard extends LitElement {
       state,
       fan_speed,
       fan_speed_list,
+      water_level,
+      water_level_list,
       battery_level,
       battery_icon,
       friendly_name,
@@ -264,6 +234,8 @@ class VacuumCard extends LitElement {
       status: status || state || entity.state,
       fan_speed,
       fan_speed_list,
+      water_level,
+      water_level_list,
       battery_level,
       battery_icon,
       friendly_name,
@@ -275,44 +247,27 @@ class VacuumCard extends LitElement {
       this.entity
     );
 
-    return this.renderDropDown(
-      source,
-      sources,
-      'mdi:fan',
-      this.handleSpeed,
-      'source'
-    );
+    return this.renderDropDown(source, sources, 'mdi:fan', this.handleSpeed);
   }
 
   renderWaterLevel() {
-    const entity = this.waterLevel;
-    if (entity) {
-      return this.renderDropDown(
-        entity.state,
-        entity.attributes.options,
-        'mdi:water',
-        this.handleSelect,
-        'source'
-      );
-    }
+    const { water_level: source, water_level_list: sources } =
+      this.getAttributes(this.entity);
+
+    return this.renderDropDown(
+      source,
+      sources,
+      'mdi:water',
+      this.handleWaterLevel
+    );
   }
 
-  renderDropDown(
-    selectedObject,
-    objects,
-    icon,
-    onSelected,
-    localizePrefix = ''
-  ) {
-    if (!objects) {
+  renderDropDown(source, sources, icon, onSelected) {
+    if (!sources) {
       return nothing;
     }
 
-    const selected = objects.indexOf(selectedObject);
-
-    if (localizePrefix !== '' && !localizePrefix.endsWith('.')) {
-      localizePrefix += '.';
-    }
+    const selected = sources.indexOf(source);
 
     return html`
       <div class="tip">
@@ -320,19 +275,18 @@ class VacuumCard extends LitElement {
           <div slot="trigger">
             <ha-icon icon="${icon}"></ha-icon>
             <span class="icon-title">
-              ${localize(`${localizePrefix}${selectedObject}`) ||
-              selectedObject}
+              ${localize(`source.${source}`) || source}
             </span>
           </div>
-          ${objects.map(
+          ${sources.map(
             (item, index) =>
               html`
                 <mwc-list-item
                   ?activated=${selected === index}
                   value=${item}
-                  @click="${(e) => onSelected(e, this)}"
+                  @click="${onSelected}"
                 >
-                  ${localize(`${localizePrefix}${item}`) || item}
+                  ${localize(`source.${item}`) || item}
                 </mwc-list-item>
               `
           )}
@@ -357,7 +311,7 @@ class VacuumCard extends LitElement {
       return nothing;
     }
 
-    if (this.map && state === 'cleaning') {
+    if (this.map && ['cleaning', 'paused', 'returning'].includes(state)) {
       const map = this.hass.states[this.config.map];
       return map && map.attributes.entity_picture
         ? html`
