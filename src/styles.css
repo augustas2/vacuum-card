@@ -25,7 +25,6 @@ ha-card {
 }
 
 .preview {
-  background: var(--vc-background);
   position: relative;
   text-align: center;
 
@@ -232,7 +231,6 @@ ha-icon {
 }
 
 .toolbar {
-  background: var(--vc-toolbar-background);
   min-height: 30px;
   display: flex;
   flex-direction: row;

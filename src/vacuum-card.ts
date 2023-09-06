@@ -233,7 +233,7 @@ export class VacuumCard extends LitElement {
       return nothing;
     }
 
-    if (this.map) {
+    if (this.map && (state === 'cleaning' || state === 'returning')) {
       return this.map && this.map.attributes.entity_picture
         ? html`
             <img
