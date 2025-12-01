@@ -25,15 +25,6 @@ import DEFAULT_IMAGE from './vacuum.svg';
 
 registerTemplates();
 
-// String in the right side will be replaced by Rollup
-const PKG_VERSION = 'PKG_VERSION_VALUE';
-
-console.info(
-  `%c VACUUM-CARD %c ${PKG_VERSION}`,
-  'color: white; background: blue; font-weight: 700;',
-  'color: blue; background: white; font-weight: 700;',
-);
-
 if (!customElements.get('ha-icon-button')) {
   customElements.define(
     'ha-icon-button',
@@ -173,6 +164,8 @@ export class VacuumCard extends LitElement {
 
   private getAttributes(entity: VacuumEntity) {
     const { status, state } = entity.attributes;
+
+    console.log(this.entity);
 
     return {
       ...entity.attributes,
@@ -330,6 +323,7 @@ export class VacuumCard extends LitElement {
         </span>
         <ha-circular-progress
           .indeterminate=${this.requestInProgress}
+          .active=${this.requestInProgress}
           size="small"
         ></ha-circular-progress>
       </div>
