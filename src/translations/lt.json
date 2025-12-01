@@ -12,17 +12,27 @@
     "silent": "Tylus",
     "standard": "Standartinis",
     "medium": "Vidutinis",
-    "turbo": "Turbo"
+    "turbo": "Turbo",
+    "normal": "Įprastas",
+    "max": "Max",
+    "max_plus": "Max plius",
+    "high": "High",
+    "strong": "Strong",
+    "quiet": "Tyliai",
+    "auto": "Auto",
+    "balanced": "Subalansuotas",
+    "custom": "Pasirinktinis",
+    "off": "Išjungta"
   },
   "common": {
     "name": "Siurblio kortelė",
     "description": "Siurblio kortelė leidžia valdyti jūsų robotą siurblį",
-    "start": "Valyti",
+    "start": "Pradėti",
     "continue": "Tęsti",
     "pause": "Pristabdyti",
     "stop": "Sustabdyti",
-    "return_to_base": "Statyti į doką",
-    "locate": "Ieškoti siurblio",
+    "return_to_base": "Grįžti namo",
+    "locate": "Surasti",
     "not_available": "Siurblys yra nepasiekiamas"
   },
   "error": {
@@ -30,6 +40,7 @@
   },
   "editor": {
     "entity": "Entity (Būtina)",
+    "battery": "Baterija (Neprivaloma)",
     "map": "Žemėlapio kamera (Neprivaloma)",
     "image": "Paveikslėlis (Neprivaloma)",
     "compact_view": "Glaustas vaizdas",

@@ -61,6 +61,13 @@ export class VacuumCard extends LitElement {
     return this.hass.states[this.config.entity] as VacuumEntity;
   }
 
+  get battery(): HassEntity | null {
+    if (!this.hass || !this.config.battery) {
+      return null;
+    }
+    return this.hass.states[this.config.battery];
+  }
+
   get map(): HassEntity | null {
     if (!this.hass || !this.config.map) {
       return null;
@@ -162,10 +169,19 @@ export class VacuumCard extends LitElement {
     };
   }
 
-  private getAttributes(entity: VacuumEntity) {
+  private getAttributes(entity: HassEntity | null) {
+    console.log(entity);
+
+    return {
+      ...entity?.attributes,
+      state: entity?.state,
+    };
+  }
+
+  private getVacuumEntityAttributes(entity: VacuumEntity) {
     const { status, state } = entity.attributes;
 
-    console.log(this.entity);
+    console.log(entity);
 
     return {
       ...entity.attributes,
@@ -173,10 +189,25 @@ export class VacuumCard extends LitElement {
     };
   }
 
+  private getBatteryIcon(level: number | string): string {
+    const numericLevel = Number(level);
+
+    if (isNaN(numericLevel)) return 'mdi:battery-unknown';
+
+    if (numericLevel >= 90) return 'mdi:battery';
+    if (numericLevel >= 80) return 'mdi:battery-90';
+    if (numericLevel >= 60) return 'mdi:battery-80';
+    if (numericLevel >= 50) return 'mdi:battery-60';
+    if (numericLevel >= 30) return 'mdi:battery-50';
+    if (numericLevel >= 20) return 'mdi:battery-30';
+    if (numericLevel >= 10) return 'mdi:battery-20';
+
+    return 'mdi:battery-alert';
+  }
+
   private renderSource(): Template {
-    const { fan_speed: source, fan_speed_list: sources } = this.getAttributes(
-      this.entity,
-    );
+    const { fan_speed: source, fan_speed_list: sources } =
+      this.getVacuumEntityAttributes(this.entity);
 
     if (!sources || !source) {
       return nothing;
@@ -210,12 +241,21 @@ export class VacuumCard extends LitElement {
   }
 
   private renderBattery(): Template {
-    const { battery_level, battery_icon } = this.getAttributes(this.entity);
+    const { state, unit_of_measurement } = this.getAttributes(this.battery);
+
+    if (!state) {
+      return nothing;
+    }
+
+    const battery_icon = this.getBatteryIcon(state);
 
     return html`
-      <div class="tip" @click="${() => this.handleMore()}">
+      <div
+        class="tip"
+        @click="${() => this.handleMore(this.battery?.entity_id)}"
+      >
         <ha-icon icon="${battery_icon}"></ha-icon>
-        <span class="icon-title">${battery_level}%</span>
+        <span class="icon-title">${state}${unit_of_measurement}</span>
       </div>
     `;
   }
@@ -232,6 +272,7 @@ export class VacuumCard extends LitElement {
               class="map"
               src="${this.map.attributes.entity_picture}&v=${Date.now()}"
               @click=${() => this.handleMore(this.config.map)}
+              alt=""
             />
           `
         : nothing;
@@ -245,6 +286,7 @@ export class VacuumCard extends LitElement {
         class="vacuum ${state}"
         src="${src}"
         @click="${() => this.handleMore()}"
+        alt=""
       />
     `;
   }
@@ -298,7 +340,7 @@ export class VacuumCard extends LitElement {
   }
 
   private renderName(): Template {
-    const { friendly_name } = this.getAttributes(this.entity);
+    const { friendly_name } = this.getVacuumEntityAttributes(this.entity);
 
     if (!this.config.show_name) {
       return nothing;
@@ -308,7 +350,7 @@ export class VacuumCard extends LitElement {
   }
 
   private renderStatus(): Template {
-    const { status } = this.getAttributes(this.entity);
+    const { status } = this.getVacuumEntityAttributes(this.entity);
     const localizedStatus =
       localize(`status.${status.toLowerCase()}`) || status;
 
@@ -318,9 +360,7 @@ export class VacuumCard extends LitElement {
 
     return html`
       <div class="status">
-        <span class="status-text" alt=${localizedStatus}>
-          ${localizedStatus}
-        </span>
+        <span class="status-text"> ${localizedStatus} </span>
         <ha-circular-progress
           .indeterminate=${this.requestInProgress}
           .active=${this.requestInProgress}

@@ -39,7 +39,9 @@ export class VacuumCardEditor extends LitElement implements LovelaceCardEditor {
     if (!this.hass) {
       return [];
     }
-    return Object.keys(this.hass.states).filter((id) => id.startsWith(type));
+    return Object.keys(this.hass.states).filter(
+      (id) => id.startsWith(type) || id.endsWith(type),
+    );
   }
 
   protected render(): Template {
@@ -48,6 +50,7 @@ export class VacuumCardEditor extends LitElement implements LovelaceCardEditor {
     }
 
     const vacuumEntities = this.getEntitiesByType('vacuum');
+    const batteryEntities = this.getEntitiesByType('battery');
     const cameraEntities = [
       ...this.getEntitiesByType('camera'),
       ...this.getEntitiesByType('image'),
@@ -68,6 +71,25 @@ export class VacuumCardEditor extends LitElement implements LovelaceCardEditor {
             validationMessage=${localize('error.missing_entity')}
           >
             ${vacuumEntities.map(
+              (entity) =>
+                html` <mwc-list-item .value=${entity}
+                  >${entity}</mwc-list-item
+                >`,
+            )}
+          </ha-select>
+        </div>
+
+        <div class="option">
+          <ha-select
+            .label=${localize('editor.battery')}
+            @selected=${this.valueChanged}
+            .configValue=${'battery'}
+            .value=${this.config.battery}
+            @closed=${(e: Event) => e.stopPropagation()}
+            fixedMenuPosition
+            naturalMenuWidth
+          >
+            ${batteryEntities.map(
               (entity) =>
                 html` <mwc-list-item .value=${entity}
                   >${entity}</mwc-list-item
