@@ -61,9 +61,10 @@
   },
   "editor": {
     "entity": "Entity (Required)",
-    "battery": "Battery Entity (Optional)",
-    "map": "Map Camera (Optional)",
-    "image": "Image (Optional)",
+    "battery": "Battery Entity",
+    "main_brush": "Main Brush Entity",
+    "map": "Map Camera",
+    "image": "Image",
     "compact_view": "Compact View",
     "compact_view_aria_label_on": "Toggle compact view on",
     "compact_view_aria_label_off": "Toggle compact view off",

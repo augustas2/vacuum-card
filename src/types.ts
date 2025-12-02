@@ -21,12 +21,9 @@ export type VacuumEntityState =
   | string; // for other states
 
 export interface VacuumEntityAttributes extends HassEntityAttributeBase {
-  status?: VacuumEntityState;
   state?: VacuumEntityState;
   fan_speed?: string;
   fan_speed_list?: string[];
-  battery_level?: number;
-  battery_icon?: string;
 }
 
 export interface VacuumEntity extends HassEntityBase {
@@ -59,6 +56,7 @@ export interface VacuumCardShortcut {
 export interface VacuumCardConfig {
   entity: string;
   battery: string;
+  main_brush: string;
   map: string;
   map_refresh: number;
   image: string;

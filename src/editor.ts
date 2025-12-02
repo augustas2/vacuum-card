@@ -51,6 +51,7 @@ export class VacuumCardEditor extends LitElement implements LovelaceCardEditor {
 
     const vacuumEntities = this.getEntitiesByType('vacuum');
     const batteryEntities = this.getEntitiesByType('battery');
+    const mainBrushEntities = this.getEntitiesByType('brush_time_left');
     const cameraEntities = [
       ...this.getEntitiesByType('camera'),
       ...this.getEntitiesByType('image'),
@@ -90,6 +91,25 @@ export class VacuumCardEditor extends LitElement implements LovelaceCardEditor {
             naturalMenuWidth
           >
             ${batteryEntities.map(
+              (entity) =>
+                html` <mwc-list-item .value=${entity}
+                  >${entity}</mwc-list-item
+                >`,
+            )}
+          </ha-select>
+        </div>
+
+        <div class="option">
+          <ha-select
+            .label=${localize('editor.main_brush')}
+            @selected=${this.valueChanged}
+            .configValue=${'main_brush'}
+            .value=${this.config.main_brush}
+            @closed=${(e: Event) => e.stopPropagation()}
+            fixedMenuPosition
+            naturalMenuWidth
+          >
+            ${mainBrushEntities.map(
               (entity) =>
                 html` <mwc-list-item .value=${entity}
                   >${entity}</mwc-list-item

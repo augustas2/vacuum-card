@@ -20,6 +20,7 @@ export default function buildConfig(
   return {
     entity: config.entity,
     battery: config.battery ?? '',
+    main_brush: config.main_brush ?? '',
     map: config.map ?? '',
     map_refresh: config.map_refresh ?? 5,
     image: config.image ?? 'default',

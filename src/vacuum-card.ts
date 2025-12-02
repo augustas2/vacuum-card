@@ -7,7 +7,6 @@ import {
   ServiceCallRequest,
 } from 'custom-card-helpers';
 import registerTemplates from 'ha-template';
-import get from 'lodash/get';
 import localize from './localize';
 import styles from './styles.css';
 import buildConfig from './config';
@@ -66,6 +65,13 @@ export class VacuumCard extends LitElement {
       return null;
     }
     return this.hass.states[this.config.battery];
+  }
+
+  get main_brush(): HassEntity | null {
+    if (!this.hass || !this.config.battery) {
+      return null;
+    }
+    return this.hass.states[this.config.main_brush];
   }
 
   get map(): HassEntity | null {
@@ -171,6 +177,7 @@ export class VacuumCard extends LitElement {
 
   private getAttributes(entity: HassEntity | null) {
     console.log(entity);
+    console.log(this.main_brush);
 
     return {
       ...entity?.attributes,
@@ -179,13 +186,9 @@ export class VacuumCard extends LitElement {
   }
 
   private getVacuumEntityAttributes(entity: VacuumEntity) {
-    const { status, state } = entity.attributes;
-
-    console.log(entity);
-
     return {
       ...entity.attributes,
-      status: status ?? state ?? entity.state,
+      status: entity.state,
     };
   }
 
@@ -291,52 +294,52 @@ export class VacuumCard extends LitElement {
     `;
   }
 
-  private renderStats(state: VacuumEntityState): Template {
-    const statsList =
-      this.config.stats[state] || this.config.stats.default || [];
-
-    const stats = statsList.map(
-      ({ entity_id, attribute, value_template, unit, subtitle }) => {
-        if (!entity_id && !attribute) {
-          return nothing;
-        }
-
-        let state = '';
-
-        if (entity_id && attribute) {
-          state = get(this.hass.states[entity_id].attributes, attribute);
-        } else if (attribute) {
-          state = get(this.entity.attributes, attribute);
-        } else if (entity_id) {
-          state = this.hass.states[entity_id].state;
-        } else {
-          return nothing;
-        }
-
-        const value = html`
-          <ha-template
-            hass=${this.hass}
-            template=${value_template}
-            value=${state}
-            variables=${{ value: state }}
-          ></ha-template>
-        `;
-
-        return html`
-          <div class="stats-block" @click="${() => this.handleMore(entity_id)}">
-            <span class="stats-value">${value}</span>
-            ${unit}
-            <div class="stats-subtitle">${subtitle}</div>
-          </div>
-        `;
-      },
-    );
-
-    if (!stats.length) {
+  private renderStatsValue(value: string): Template {
+    if (!value) {
       return nothing;
     }
 
-    return html`<div class="stats">${stats}</div>`;
+    const number_value = parseFloat(value);
+    const rounded_value = Math.round(number_value).toString();
+
+    return html`
+      <ha-template
+        hass=${this.hass}
+        template=${rounded_value}
+        value=${rounded_value}
+        variables=${{ rounded_value }}
+      ></ha-template>
+    `;
+  }
+
+  private renderStatsRow(entity: HassEntity): Template {
+    const { state: stats_state, unit_of_measurement } =
+      this.getAttributes(entity);
+
+    if (!stats_state || !unit_of_measurement) {
+      return nothing;
+    }
+
+    return html`
+      <div
+        class="stats-block"
+        @click="${() => this.handleMore(entity.entity_id)}"
+      >
+        <span class="stats-value">${this.renderStatsValue(stats_state)}</span>
+        ${unit_of_measurement}
+        <div class="stats-subtitle">${unit_of_measurement}</div>
+      </div>
+    `;
+  }
+
+  private renderStats(): Template {
+    if (!this.main_brush?.entity_id) {
+      return nothing;
+    }
+
+    return html`<div class="stats">
+      ${this.renderStatsRow(this.main_brush)}
+    </div>`;
   }
 
   private renderName(): Template {
@@ -529,7 +532,7 @@ export class VacuumCard extends LitElement {
             ${this.renderName()} ${this.renderStatus()}
           </div>
 
-          ${this.renderStats(this.entity.state)}
+          ${this.renderStats()}
         </div>
 
         ${this.renderToolbar(this.entity.state)}
